@@ -315,27 +315,22 @@ func (u *UI) collectReleaseInfo() error {
 	}
 
 	if title == "" {
-		// Fix for handling tag names correctly in release titles
-		var versionDisplay string
-
-		// Get actual version number instead of just the version type (like "minor")
-		if u.config.Tag != "" {
-			output, err := u.gitCmd.GetLatestTag()
-			if err == nil && output != "" {
-				handler := version.NewHandler()
-				actualVersion, err := handler.GenerateNewTag(output, u.config.Tag)
-				if err == nil {
-					versionDisplay = actualVersion
-				}
+		// Get the actual tag version that will be created/updated
+		output, err := u.gitCmd.GetLatestTag()
+		if err != nil {
+			// If we couldn't get the latest tag, use a default format
+			title = "Release v" + u.config.Tag
+		} else {
+			// Generate the new tag based on the latest tag and version type
+			handler := version.NewHandler()
+			actualVersion, err := handler.GenerateNewTag(output, u.config.Tag)
+			if err != nil {
+				// Fallback to simple format if generation fails
+				title = "Release v" + u.config.Tag
+			} else {
+				title = "Release " + actualVersion
 			}
 		}
-
-		// If we couldn't get the actual version, fall back to the tag
-		if versionDisplay == "" {
-			versionDisplay = u.config.Tag
-		}
-
-		title = "Release " + versionDisplay
 	}
 
 	u.config.ReleaseTitle = title

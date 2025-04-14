@@ -108,8 +108,18 @@ func (r *ReleaseManager) getRepoFullName() (string, error) {
 }
 
 func (r *ReleaseManager) getToken() (string, error) {
-	// Load .env file if it exists
 	_ = godotenv.Load()
+	_ = godotenv.Load(".env")
+
+	_, err := os.Stat("../.env")
+	if err == nil {
+		_ = godotenv.Load("../.env")
+	}
+
+	workDir, err := os.Getwd()
+	if err == nil {
+		_ = godotenv.Load(workDir + "/.env")
+	}
 
 	var envVar string
 	if r.config.RepoType == "github" {
