@@ -12,6 +12,7 @@ import (
 
 	"github.com/be-tech/version-manager/internal/utils"
 	"github.com/be-tech/version-manager/pkg/config"
+	"github.com/joho/godotenv"
 )
 
 const (
@@ -107,6 +108,9 @@ func (r *ReleaseManager) getRepoFullName() (string, error) {
 }
 
 func (r *ReleaseManager) getToken() (string, error) {
+	// Load .env file if it exists
+	_ = godotenv.Load()
+
 	var envVar string
 	if r.config.RepoType == "github" {
 		envVar = "GITHUB_TOKEN"

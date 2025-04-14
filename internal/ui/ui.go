@@ -8,6 +8,7 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/be-tech/version-manager/internal/utils"
 	"github.com/be-tech/version-manager/pkg/config"
+	"github.com/be-tech/version-manager/pkg/version"
 )
 
 type UI struct {
@@ -314,8 +315,29 @@ func (u *UI) collectReleaseInfo() error {
 	}
 
 	if title == "" {
-		title = "Release v" + u.config.Tag
+		// Fix for handling tag names correctly in release titles
+		var versionDisplay string
+
+		// Get actual version number instead of just the version type (like "minor")
+		if u.config.Tag != "" {
+			output, err := u.gitCmd.GetLatestTag()
+			if err == nil && output != "" {
+				handler := version.NewHandler()
+				actualVersion, err := handler.GenerateNewTag(output, u.config.Tag)
+				if err == nil {
+					versionDisplay = actualVersion
+				}
+			}
+		}
+
+		// If we couldn't get the actual version, fall back to the tag
+		if versionDisplay == "" {
+			versionDisplay = u.config.Tag
+		}
+
+		title = "Release " + versionDisplay
 	}
+
 	u.config.ReleaseTitle = title
 	u.logChoice("Título da release", u.config.ReleaseTitle)
 
