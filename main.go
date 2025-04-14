@@ -6,9 +6,13 @@ import (
 	"github.com/be-tech/version-manager/internal/git"
 	"github.com/be-tech/version-manager/internal/ui"
 	"github.com/be-tech/version-manager/internal/utils"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	// Load environment variables from .env file right at the start of the application
+	loadEnvFile()
+
 	logger := utils.NewLogger()
 	logger.Title("Version Manager - Git version control tool")
 
@@ -28,4 +32,26 @@ func main() {
 	}
 
 	logger.Success("Gerenciamento de versão concluído com sucesso!")
+}
+
+// loadEnvFile tries to load environment variables from .env files
+// searching in multiple locations to ensure it works regardless of where
+// the application is executed from
+func loadEnvFile() {
+	// Try different locations for the .env file
+	paths := []string{
+		".env",    // Current directory
+		"../.env", // Parent directory
+	}
+
+	// Try each path and stop at the first successful load
+	for _, path := range paths {
+		if _, err := os.Stat(path); err == nil {
+			_ = godotenv.Load(path)
+			return
+		}
+	}
+
+	// Fall back to the default load which tries the current directory
+	_ = godotenv.Load()
 }
