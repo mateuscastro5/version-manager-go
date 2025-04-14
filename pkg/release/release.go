@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/be-tech/version-manager/internal/utils"
@@ -21,6 +22,7 @@ const (
 type ReleaseManager struct {
 	config *config.Config
 	logger *utils.Logger
+	gitCmd *utils.GitCommands
 }
 
 type GitHubReleaseRequest struct {
@@ -42,7 +44,21 @@ func NewReleaseManager(config *config.Config) *ReleaseManager {
 	return &ReleaseManager{
 		config: config,
 		logger: utils.NewLogger(),
+		gitCmd: utils.NewGitCommands(&defaultCommandRunner{}),
 	}
+}
+
+// Implementação de CommandRunner para o ReleaseManager
+type defaultCommandRunner struct{}
+
+func (r *defaultCommandRunner) Run(name string, args ...string) ([]byte, error) {
+	cmd := exec.Command(name, args...)
+	return cmd.CombinedOutput()
+}
+
+func (r *defaultCommandRunner) Output(name string, args ...string) ([]byte, error) {
+	cmd := exec.Command(name, args...)
+	return cmd.Output()
 }
 
 func (r *ReleaseManager) CreateRelease(tagVersion string) error {
@@ -57,7 +73,8 @@ func (r *ReleaseManager) CreateRelease(tagVersion string) error {
 }
 
 func (r *ReleaseManager) getRepoFullName() (string, error) {
-	cmd := utils.NewCommand("git", "remote", "get-url", r.config.Remote)
+	// Executando o comando git diretamente sem tentar acessar o campo privado runner
+	cmd := exec.Command("git", "remote", "get-url", r.config.Remote)
 	output, err := cmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("falha ao obter URL do repositório: %v", err)
