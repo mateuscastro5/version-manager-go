@@ -7,12 +7,10 @@ import (
 func TestNewConfig(t *testing.T) {
 	config := NewConfig()
 
-	// Verificar se a instância foi criada corretamente
 	if config == nil {
 		t.Fatal("NewConfig deve retornar uma instância não nula")
 	}
 
-	// Verificar valores iniciais
 	if config.Remote != "" {
 		t.Errorf("Valor inicial de Remote deve ser string vazia, obteve: %s", config.Remote)
 	}
@@ -39,7 +37,6 @@ func TestNewConfig(t *testing.T) {
 }
 
 func TestConfigProperties(t *testing.T) {
-	// Criar e preencher uma configuração
 	config := NewConfig()
 	config.Remote = "origin"
 	config.SourceBranch = "feature"
@@ -48,7 +45,6 @@ func TestConfigProperties(t *testing.T) {
 	config.RemoveBranch = true
 	config.Tag = "major"
 
-	// Verificar se os valores foram atribuídos corretamente
 	if config.Remote != "origin" {
 		t.Errorf("Remote: esperava 'origin', obteve '%s'", config.Remote)
 	}

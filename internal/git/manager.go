@@ -7,6 +7,7 @@ import (
 
 	"github.com/be-tech/version-manager/internal/utils"
 	"github.com/be-tech/version-manager/pkg/config"
+	"github.com/be-tech/version-manager/pkg/release"
 	"github.com/be-tech/version-manager/pkg/version"
 )
 
@@ -62,12 +63,24 @@ func (m *Manager) ExecuteVersionFlow() error {
 		return err
 	}
 
-	if err := m.createVersionTag(); err != nil {
-		return err
-	}
+	var newTagVersion string
+	var err error
 
-	if err := m.updateTagOnRemote(); err != nil {
-		return err
+	if m.config.Tag != "" {
+		newTagVersion, err = m.createVersionTag()
+		if err != nil {
+			return err
+		}
+
+		if err := m.updateTagOnRemote(); err != nil {
+			return err
+		}
+
+		if m.config.CreateRelease {
+			if err := m.createRelease(newTagVersion); err != nil {
+				return err
+			}
+		}
 	}
 
 	if !m.config.RemoveBranch {
@@ -182,9 +195,9 @@ func (m *Manager) pushToRemote(returning bool) error {
 	return nil
 }
 
-func (m *Manager) createVersionTag() error {
+func (m *Manager) createVersionTag() (string, error) {
 	if m.config.Tag == "" {
-		return nil
+		return "", nil
 	}
 
 	spinner := utils.NewProgressSpinner(fmt.Sprintf("Creating version tag: %s", m.config.Tag))
@@ -209,11 +222,11 @@ func (m *Manager) createVersionTag() error {
 	}, m.delayTime)
 
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	m.logger.Success("Successfully created version tag: %s", newTag)
-	return nil
+	return newTag, nil
 }
 
 func (m *Manager) updateTagOnRemote() error {
@@ -264,5 +277,25 @@ func (m *Manager) removeSourceBranch() error {
 	}
 
 	m.logger.Success("Successfully removed source branch: %s", m.config.SourceBranch)
+	return nil
+}
+
+func (m *Manager) createRelease(tagVersion string) error {
+	if !m.config.CreateRelease || tagVersion == "" {
+		return nil
+	}
+
+	spinner := utils.NewProgressSpinner(fmt.Sprintf("Creating release for tag %s on %s", tagVersion, m.config.RepoType))
+
+	err := spinner.WithDelay(func() error {
+		releaseManager := release.NewReleaseManager(m.config)
+		return releaseManager.CreateRelease(tagVersion)
+	}, m.delayTime)
+
+	if err != nil {
+		return fmt.Errorf("falha ao criar release: %v", err)
+	}
+
+	m.logger.Success("Release criada com sucesso!")
 	return nil
 }

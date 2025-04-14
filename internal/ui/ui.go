@@ -63,6 +63,22 @@ func (u *UI) CollectUserInput() (*config.Config, error) {
 		return nil, err
 	}
 
+	if u.config.Tag != "" {
+		if err = u.askCreateRelease(); err != nil {
+			return nil, err
+		}
+
+		if u.config.CreateRelease {
+			if err = u.selectRepoType(); err != nil {
+				return nil, err
+			}
+
+			if err = u.collectReleaseInfo(); err != nil {
+				return nil, err
+			}
+		}
+	}
+
 	return u.config, nil
 }
 
@@ -249,6 +265,71 @@ func (u *UI) handleVersionTag() error {
 	}
 
 	u.logChoice("Versão de lançamento selecionada", u.config.Tag)
+
+	return nil
+}
+
+func (u *UI) askCreateRelease() error {
+	prompt := &survey.Confirm{
+		Message: "Você deseja criar uma release no GitHub/GitLab com esta tag?",
+		Default: false,
+	}
+
+	var createRelease bool
+	if err := survey.AskOne(prompt, &createRelease); err != nil {
+		return fmt.Errorf("falha ao obter confirmação para criar release: %v", err)
+	}
+
+	u.config.CreateRelease = createRelease
+	u.logChoice("Criar release", u.config.CreateRelease)
+
+	return nil
+}
+
+func (u *UI) selectRepoType() error {
+	prompt := &survey.Select{
+		Message: "Qual é o tipo do seu repositório?",
+		Options: []string{"GitHub", "GitLab"},
+	}
+
+	var repoType string
+	if err := survey.AskOne(prompt, &repoType); err != nil {
+		return fmt.Errorf("falha na seleção do tipo de repositório: %v", err)
+	}
+
+	u.config.RepoType = strings.ToLower(repoType)
+	u.logChoice("Tipo de repositório", u.config.RepoType)
+
+	return nil
+}
+
+func (u *UI) collectReleaseInfo() error {
+	titlePrompt := &survey.Input{
+		Message: "Título da release (deixe em branco para usar a tag):",
+	}
+
+	var title string
+	if err := survey.AskOne(titlePrompt, &title); err != nil {
+		return fmt.Errorf("falha ao obter título da release: %v", err)
+	}
+
+	if title == "" {
+		title = "Release v" + u.config.Tag
+	}
+	u.config.ReleaseTitle = title
+	u.logChoice("Título da release", u.config.ReleaseTitle)
+
+	notesPrompt := &survey.Multiline{
+		Message: "Notas da release (descrição das mudanças):",
+	}
+
+	var notes string
+	if err := survey.AskOne(notesPrompt, &notes); err != nil {
+		return fmt.Errorf("falha ao obter notas da release: %v", err)
+	}
+
+	u.config.ReleaseNotes = notes
+	u.logChoice("Notas da release foram preenchidas", len(notes) > 0)
 
 	return nil
 }

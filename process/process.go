@@ -11,65 +11,53 @@ import (
 	"github.com/fatih/color"
 )
 
-// Process gerencia a execução dos comandos git baseados nas respostas do usuário
 type Process struct {
 	questions *questions.Questions
 }
 
-// NewProcess cria uma nova instância do Process
 func NewProcess(q *questions.Questions) *Process {
 	return &Process{
 		questions: q,
 	}
 }
 
-// ExecuteCommands executa todos os comandos do processo
 func (p *Process) ExecuteCommands() error {
 	green := color.New(color.FgHiGreen, color.Bold).SprintFunc()
 	fmt.Println(green("Starting deploy!"))
 
-	// Checkout para a branch de destino
 	if err := p.checkoutDestinationBranch(); err != nil {
 		return err
 	}
 
-	// Merge das branches
 	if err := p.mergeBranches(false); err != nil {
 		return err
 	}
 
-	// Push para o repositório remoto
 	if err := p.pushToRemote(false); err != nil {
 		return err
 	}
 
-	// Criar tag
 	if err := p.createTag(); err != nil {
 		return err
 	}
 
-	// Atualizar tag no repositório remoto
 	if err := p.updateTag(); err != nil {
 		return err
 	}
 
 	if !p.questions.RemoveBranch {
-		// Checkout para a branch de origem
 		if err := p.checkoutSourceBranch(); err != nil {
 			return err
 		}
 
-		// Merge das branches (volta)
 		if err := p.mergeBranches(true); err != nil {
 			return err
 		}
 
-		// Push para o repositório remoto (volta)
 		if err := p.pushToRemote(true); err != nil {
 			return err
 		}
 	} else {
-		// Remover branch de origem
 		if err := p.removeSourceBranch(); err != nil {
 			return err
 		}
@@ -78,13 +66,11 @@ func (p *Process) ExecuteCommands() error {
 	return nil
 }
 
-// checkoutDestinationBranch faz checkout para a branch de destino
 func (p *Process) checkoutDestinationBranch() error {
 	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 	s.Suffix = fmt.Sprintf(" Checking out to destination branch: %s", p.questions.DestinationBranch)
 	s.Start()
 
-	// Delay para dar sensação de processamento (similar ao delay no código JS)
 	time.Sleep(2 * time.Second)
 
 	cmd := exec.Command("git", "checkout", p.questions.DestinationBranch)
@@ -99,7 +85,6 @@ func (p *Process) checkoutDestinationBranch() error {
 	return nil
 }
 
-// checkoutSourceBranch faz checkout para a branch de origem
 func (p *Process) checkoutSourceBranch() error {
 	if p.questions.RemoveBranch {
 		return nil
@@ -109,7 +94,6 @@ func (p *Process) checkoutSourceBranch() error {
 	s.Suffix = fmt.Sprintf(" Checking out to source branch: %s", p.questions.SourceBranch)
 	s.Start()
 
-	// Delay para dar sensação de processamento (similar ao delay no código JS)
 	time.Sleep(2 * time.Second)
 
 	cmd := exec.Command("git", "checkout", p.questions.SourceBranch)
@@ -124,7 +108,6 @@ func (p *Process) checkoutSourceBranch() error {
 	return nil
 }
 
-// mergeBranches realiza o merge entre branches
 func (p *Process) mergeBranches(returning bool) error {
 	var source, destination, mergeMessage string
 
@@ -142,7 +125,6 @@ func (p *Process) mergeBranches(returning bool) error {
 	s.Suffix = fmt.Sprintf(" %s", mergeMessage)
 	s.Start()
 
-	// Delay para dar sensação de processamento (similar ao delay no código JS)
 	time.Sleep(2 * time.Second)
 
 	cmd := exec.Command("git", "merge", source)
@@ -157,7 +139,6 @@ func (p *Process) mergeBranches(returning bool) error {
 	return nil
 }
 
-// pushToRemote faz push para o repositório remoto
 func (p *Process) pushToRemote(returning bool) error {
 	if !p.questions.Push {
 		return nil
@@ -178,7 +159,6 @@ func (p *Process) pushToRemote(returning bool) error {
 	s.Suffix = fmt.Sprintf(" Pushing %s to %s", branch, p.questions.Remote)
 	s.Start()
 
-	// Delay para dar sensação de processamento (similar ao delay no código JS)
 	time.Sleep(2 * time.Second)
 
 	cmd := exec.Command("git", "push", p.questions.Remote, branch)
@@ -193,7 +173,6 @@ func (p *Process) pushToRemote(returning bool) error {
 	return nil
 }
 
-// createTag cria uma nova tag de versão
 func (p *Process) createTag() error {
 	if p.questions.Tag == "" {
 		return nil
@@ -203,34 +182,26 @@ func (p *Process) createTag() error {
 	s.Suffix = fmt.Sprintf(" Creating version tag: %s", p.questions.Tag)
 	s.Start()
 
-	// Delay para dar sensação de processamento (similar ao delay no código JS)
 	time.Sleep(2 * time.Second)
 
-	// Em Go, precisamos gerenciar a versão diretamente com git tag em vez de npm version
 	cmd := exec.Command("git", "describe", "--tags", "--abbrev=0")
-	lastTag, _ := cmd.Output() // Ignora erro se não houver tag anterior
+	lastTag, _ := cmd.Output()
 
 	var newTag string
 	if len(lastTag) == 0 {
-		// Se não há tag anterior, começamos com v1.0.0
 		newTag = "v1.0.0"
 	} else {
-		// Remove nova linha e quaisquer caracteres de controle
 		currentTag := strings.TrimSpace(string(lastTag))
 
-		// Remove o 'v' inicial se houver
 		tagVersion := currentTag
 		if strings.HasPrefix(currentTag, "v") {
 			tagVersion = currentTag[1:]
 		}
 
-		// Divida a versão em partes
 		parts := strings.Split(tagVersion, ".")
 		if len(parts) < 3 {
-			// Se a versão não estiver no formato esperado, use v1.0.0
 			newTag = "v1.0.0"
 		} else {
-			// Incrementa a versão com base no tipo selecionado
 			switch p.questions.Tag {
 			case "major":
 				major := parseVersionPart(parts[0]) + 1
@@ -245,7 +216,6 @@ func (p *Process) createTag() error {
 				patch := parseVersionPart(parts[2]) + 1
 				newTag = fmt.Sprintf("v%d.%d.%d", major, minor, patch)
 			case "premajor", "preminor", "prepatch", "prerelease":
-				// Implementação simplificada de pre-releases
 				newTag = currentTag + "-pre"
 			default:
 				newTag = currentTag
@@ -253,7 +223,6 @@ func (p *Process) createTag() error {
 		}
 	}
 
-	// Criar a tag com git tag
 	cmd = exec.Command("git", "tag", "-a", newTag, "-m", fmt.Sprintf("Version %s", newTag))
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -266,14 +235,12 @@ func (p *Process) createTag() error {
 	return nil
 }
 
-// parseVersionPart converte uma parte da versão de string para int
 func parseVersionPart(part string) int {
 	var version int
 	fmt.Sscanf(part, "%d", &version)
 	return version
 }
 
-// updateTag atualiza a tag no repositório remoto
 func (p *Process) updateTag() error {
 	if !p.questions.Push || p.questions.Tag == "" {
 		return nil
@@ -283,10 +250,8 @@ func (p *Process) updateTag() error {
 	s.Suffix = " Updating tag in remote repository"
 	s.Start()
 
-	// Delay para dar sensação de processamento (similar ao delay no código JS)
 	time.Sleep(5 * time.Second)
 
-	// Obter a tag mais recente
 	cmd := exec.Command("git", "describe", "--tags", "--abbrev=0")
 	output, err := cmd.Output()
 	if err != nil {
@@ -295,7 +260,6 @@ func (p *Process) updateTag() error {
 	}
 	newtag := strings.TrimSpace(string(output))
 
-	// Push a tag para o remote
 	cmd = exec.Command("git", "push", p.questions.Remote, newtag)
 	_, err = cmd.CombinedOutput()
 	if err != nil {
@@ -303,7 +267,6 @@ func (p *Process) updateTag() error {
 		return fmt.Errorf("failed to push tag to remote: %v", err)
 	}
 
-	// Push a branch destination para o remote
 	cmd = exec.Command("git", "push", p.questions.Remote, p.questions.DestinationBranch)
 	_, err = cmd.CombinedOutput()
 	if err != nil {
@@ -316,7 +279,6 @@ func (p *Process) updateTag() error {
 	return nil
 }
 
-// removeSourceBranch remove a branch de origem
 func (p *Process) removeSourceBranch() error {
 	if !p.questions.RemoveBranch {
 		return nil
@@ -326,7 +288,6 @@ func (p *Process) removeSourceBranch() error {
 	s.Suffix = fmt.Sprintf(" Removing source branch: %s", p.questions.SourceBranch)
 	s.Start()
 
-	// Delay para dar sensação de processamento (similar ao delay no código JS)
 	time.Sleep(2 * time.Second)
 
 	cmd := exec.Command("git", "branch", "-D", p.questions.SourceBranch)
