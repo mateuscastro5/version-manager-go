@@ -230,6 +230,13 @@ func (p *Process) createTag() error {
 		return fmt.Errorf("failed to create tag: %v\n%s", err, updateTag)
 	}
 
+	exec.Command("git", "push", p.questions.Remote, p.questions.DestinationBranch)
+	_, err = cmd.CombinedOutput()
+	if err != nil {
+		s.Stop()
+		return fmt.Errorf("failed to push destination branch to remote: %v", err)
+	}
+
 	cmd = exec.Command("git", "tag", "-a", newTag, "-m", fmt.Sprintf("Version %s", newTag))
 	output, err := cmd.CombinedOutput()
 	if err != nil {
