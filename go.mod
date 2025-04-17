@@ -4,6 +4,7 @@ go 1.22.2
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.7 // indirect
+	github.com/Masterminds/semver/v3 v3.3.1 // indirect
 	github.com/briandowns/spinner v1.23.2 // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect

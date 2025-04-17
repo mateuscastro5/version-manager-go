@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/be-tech/version-manager/questions"
 	"github.com/briandowns/spinner"
 	"github.com/fatih/color"
@@ -181,71 +182,93 @@ func (p *Process) createTag() error {
 	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 	s.Suffix = fmt.Sprintf(" Creating version tag: %s", p.questions.Tag)
 	s.Start()
+	defer s.Stop()
 
-	time.Sleep(2 * time.Second)
-
+	// Get last tag
 	cmd := exec.Command("git", "describe", "--tags", "--abbrev=0")
-	lastTag, _ := cmd.Output()
+	lastTagBytes, err := cmd.CombinedOutput()
+	if err != nil && !strings.Contains(err.Error(), "no tags can be found") {
+		return fmt.Errorf("error getting last tag: %v\n%s", err, lastTagBytes)
+	}
 
-	var newTag string
-	if len(lastTag) == 0 {
-		newTag = "v1.0.0"
+	currentTag := strings.TrimSpace(string(lastTagBytes))
+	var newVersion *semver.Version
+
+	// Parse or initialize version
+	if currentTag == "" {
+		newVersion = semver.MustParse("v1.0.0")
 	} else {
-		currentTag := strings.TrimSpace(string(lastTag))
-
-		tagVersion := currentTag
-		if strings.HasPrefix(currentTag, "v") {
-			tagVersion = currentTag[1:]
+		v, err := semver.NewVersion(currentTag)
+		if err != nil {
+			return fmt.Errorf("invalid version format: %s", currentTag)
 		}
+		newVersion = v
+	}
 
-		parts := strings.Split(tagVersion, ".")
-		if len(parts) < 3 {
-			newTag = "v1.0.0"
+	// Apply version bump
+	switch p.questions.Tag {
+	case "major":
+		v := newVersion.IncMajor()
+		newVersion = &v
+	case "minor":
+		v := newVersion.IncMinor()
+		newVersion = &v
+	case "patch":
+		v := newVersion.IncPatch()
+		newVersion = &v
+	case "premajor":
+		v := newVersion.IncMajor()
+		v, _ = v.SetPrerelease("beta")
+		newVersion = &v
+	case "preminor":
+		v := newVersion.IncMinor()
+		v, _ = v.SetPrerelease("beta")
+		newVersion = &v
+	case "prepatch":
+		v := newVersion.IncPatch()
+		v, _ = v.SetPrerelease("beta")
+		newVersion = &v
+	case "prerelease":
+		pre := newVersion.Prerelease()
+		if pre == "" {
+			v := *newVersion
+			v, _ = v.SetPrerelease("beta.0")
+			newVersion = &v
 		} else {
-			switch p.questions.Tag {
-			case "major":
-				major := parseVersionPart(parts[0]) + 1
-				newTag = fmt.Sprintf("v%d.0.0", major)
-			case "minor":
-				major := parseVersionPart(parts[0])
-				minor := parseVersionPart(parts[1]) + 1
-				newTag = fmt.Sprintf("v%d.%d.0", major, minor)
-			case "patch":
-				major := parseVersionPart(parts[0])
-				minor := parseVersionPart(parts[1])
-				patch := parseVersionPart(parts[2]) + 1
-				newTag = fmt.Sprintf("v%d.%d.%d", major, minor, patch)
-			case "premajor", "preminor", "prepatch", "prerelease":
-				newTag = currentTag + "-pre"
-			default:
-				newTag = currentTag
-			}
+			// Increment prerelease version
+			v := *newVersion
+			v, _ = v.SetPrerelease(pre)
+			newVersion = &v
 		}
+	default:
+		return fmt.Errorf("invalid version bump type: %s", p.questions.Tag)
 	}
 
-	cmd = exec.Command("npm", "version", newTag, "--allow-same-version=true", fmt.Sprintf("Version %s", newTag))
-	updateTag, err := cmd.CombinedOutput()
-	if err != nil {
-		s.Stop()
-		return fmt.Errorf("failed to create tag: %v\n%s", err, updateTag)
+	newTag := "v" + newVersion.String()
+
+	// NPM version
+	npmCmd := exec.Command("npm", "version", newTag, "--no-git-tag-version")
+	if output, err := npmCmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("npm version failed: %v\n%s", err, output)
 	}
 
-	exec.Command("git", "push", p.questions.Remote, p.questions.DestinationBranch)
-	_, err = cmd.CombinedOutput()
-	if err != nil {
-		s.Stop()
-		return fmt.Errorf("failed to push destination branch to remote: %v", err)
+	// Git operations
+	gitCmds := []*exec.Cmd{
+		exec.Command("git", "add", "package.json", "package-lock.json"),
+		exec.Command("git", "commit", "-m", fmt.Sprintf("chore: release %s", newTag)),
+		exec.Command("git", "tag", "-a", newTag, "-m", fmt.Sprintf("Release %s", newTag)),
+		exec.Command("git", "push", p.questions.Remote, p.questions.DestinationBranch),
+		exec.Command("git", "push", p.questions.Remote, newTag),
 	}
 
-	cmd = exec.Command("git", "tag", "-a", newTag, "-m", fmt.Sprintf("Version %s", newTag))
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		s.Stop()
-		return fmt.Errorf("failed to create tag: %v\n%s", err, output)
+	for _, cmd := range gitCmds {
+		if output, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("git command failed: %v\n%s", err, output)
+		}
 	}
 
 	s.Stop()
-	fmt.Printf("✓ Successfully created version tag: %s\n", newTag)
+	fmt.Printf("✓ Successfully created and pushed version tag: %s\n", newTag)
 	return nil
 }
 
