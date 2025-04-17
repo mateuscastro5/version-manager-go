@@ -1,0 +1,38 @@
+{
+  "name": "@be-tech/git-manager",
+  "version": "1.0.0",
+  "description": "CLI manager for github",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "commonjs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mateuscastro5/version-manager-go.git"
+  },
+  "bin": {
+    "git-manager": "./index.js"
+  },
+  "keywords": [
+    "version-manager",
+    "git",
+    "git-manager"
+  ],
+  "author": "Matheus Fagundes, Pietro Klug",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mateuscastro5/version-manager-go/issues"
+  },
+  "homepage": "https://github.com/mateuscastro5/version-manager-go#readme",
+  "dependencies": {
+    "ffi-napi": "^4.0.3"
+  },
+  "files": [
+    "bin/**/*",
+    "cli.js"
+  ]
+}

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -184,7 +184,7 @@ func (r *ReleaseManager) createGitHubRelease(tagVersion string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		bodyBytes, _ := ioutil.ReadAll(resp.Body)
+		bodyBytes, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("falha ao criar release (código %d): %s", resp.StatusCode, string(bodyBytes))
 	}
 
@@ -235,7 +235,7 @@ func (r *ReleaseManager) createGitLabRelease(tagVersion string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		bodyBytes, _ := ioutil.ReadAll(resp.Body)
+		bodyBytes, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("falha ao criar release (código %d): %s", resp.StatusCode, string(bodyBytes))
 	}
 
