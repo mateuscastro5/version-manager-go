@@ -1,6 +1,6 @@
 {
   "name": "@be-tech/git-manager",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "CLI manager for github",
   "main": "index.js",
   "scripts": {

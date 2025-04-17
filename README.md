@@ -1,36 +1,29 @@
-# version-manager (Go Version)
+# Git-Manager
 
 Com esta ferramenta você pode controlar o versionamento Git dos seus projetos.
 
 ## Como instalar:
 
-### Usando Go Install
+### Usando NPM
 ```
-go install github.com/be-tech/version-manager@latest
+npm install @be-tech/git-manager
 ```
-
-### Compilando manualmente
-```bash
-# Clone o repositório
-git clone https://github.com/be-tech/version-manager.git
-
-# Entre no diretório
-cd version-manager
-
-# Compile o projeto
-go build -o v-manager
-
-# Mova o binário para um diretório no seu PATH (opcional)
-sudo mv v-manager /usr/local/bin/
+### Usando yarn
+```
+yarn add @be-tech/git-manager
+```
+### Usando PNPM
+```
+pnpm install @be-tech/git-manager
 ```
 
 ## Como usar:
-Basta digitar:
+Basta digitar e seguir as instruções:
 ```
-v-manager
+git-manager
 ```
 
-### Configuração de Tokens para Integração com GitHub/GitLab
+### Configuração de Tokens para Integração com GitHub/GitLab PARA RELEASES
 
 Para criar releases no GitHub ou GitLab, você precisa configurar o token de acesso:
 
@@ -39,7 +32,7 @@ Para criar releases no GitHub ou GitLab, você precisa configurar o token de ace
    ```
    # Para GitHub
    GITHUB_TOKEN=seu_token_aqui
-   
+
    # Para GitLab
    GITLAB_TOKEN=seu_token_aqui
    ```
@@ -49,7 +42,7 @@ Para criar releases no GitHub ou GitLab, você precisa configurar o token de ace
    ```bash
    # Para GitHub
    export GITHUB_TOKEN=seu_token_aqui
-   
+
    # Para GitLab
    export GITLAB_TOKEN=seu_token_aqui
    ```
@@ -70,4 +63,4 @@ Para criar releases no GitHub ou GitLab, você precisa configurar o token de ace
 
 ## Requisitos
 - Git instalado e configurado
-- Go 1.16 ou superior (apenas para compilação)
+- Node v20 ou superior

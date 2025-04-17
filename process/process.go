@@ -223,6 +223,13 @@ func (p *Process) createTag() error {
 		}
 	}
 
+	cmd = exec.Command("npm", "version", newTag, "--allow-same-version=true", fmt.Sprintf("Version %s", newTag))
+	updateTag, err := cmd.CombinedOutput()
+	if err != nil {
+		s.Stop()
+		return fmt.Errorf("failed to create tag: %v\n%s", err, updateTag)
+	}
+
 	cmd = exec.Command("git", "tag", "-a", newTag, "-m", fmt.Sprintf("Version %s", newTag))
 	output, err := cmd.CombinedOutput()
 	if err != nil {
